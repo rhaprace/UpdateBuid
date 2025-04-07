@@ -18,6 +18,7 @@ import Workout from "./components/workout/index.tsx";
 import LandingPage from "./components/landingpage/index.tsx";
 import Progress from "./components/progress/index.tsx";
 import EditProfile from "./components/editprofile/index.tsx";
+
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <Router>
@@ -25,7 +26,7 @@ createRoot(document.getElementById("root")!).render(
         <Route
           path="/"
           element={
-            <AuthRoute>
+            <AuthRoute guestAllowed={true}>
               <App />
             </AuthRoute>
           }
@@ -33,11 +34,46 @@ createRoot(document.getElementById("root")!).render(
         <Route path="/landingpage" element={<LandingPage />} />
         <Route path="/login" element={<LogIn />} />
         <Route path="/register" element={<Register />} />
-        <Route path="/meal" element={<Meal />} />
-        <Route path="/workout" element={<Workout />} />
-        <Route path="/progress" element={<Progress />} />
-        <Route path="/profile" element={<EditProfile />} />
-        <Route path="/chatbot" element={<Chatbot />} />
+        <Route
+          path="/meal"
+          element={
+            <AuthRoute>
+              <Meal />
+            </AuthRoute>
+          }
+        />
+        <Route
+          path="/workout"
+          element={
+            <AuthRoute>
+              <Workout />
+            </AuthRoute>
+          }
+        />
+        <Route
+          path="/progress"
+          element={
+            <AuthRoute>
+              <Progress />
+            </AuthRoute>
+          }
+        />
+        <Route
+          path="/profile"
+          element={
+            <AuthRoute>
+              <EditProfile />
+            </AuthRoute>
+          }
+        />
+        <Route
+          path="/chatbot"
+          element={
+            <AuthRoute>
+              <Chatbot />
+            </AuthRoute>
+          }
+        />
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>
     </Router>
