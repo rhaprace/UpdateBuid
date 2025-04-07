@@ -6,9 +6,10 @@ import { onAuthStateChanged } from "firebase/auth";
 import { auth, db } from "../db/firebaseapp";
 import { doc, getDoc } from "firebase/firestore";
 import Vid from "@/assets/vid.mp4";
+
 const Home: React.FC = () => {
   const navigate = useNavigate();
-  const [userName, setUserName] = useState("");
+  const [userName, setUserName] = useState("Guest");
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -18,6 +19,9 @@ const Home: React.FC = () => {
         if (userDoc.exists()) {
           setUserName(userDoc.data().name);
         }
+      } else {
+        // Set username to "Guest" if no user is logged in
+        setUserName("Guest");
       }
       setLoading(false);
     });

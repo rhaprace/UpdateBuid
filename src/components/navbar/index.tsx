@@ -1,8 +1,8 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Bars3Icon, XMarkIcon, UserIcon } from "@heroicons/react/24/solid";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
-import { getAuth, signOut } from "firebase/auth";
+import { getAuth, onAuthStateChanged, signOut } from "firebase/auth";
 import { LogOut, User } from "lucide-react";
 
 const Navbar = () => {
@@ -11,6 +11,14 @@ const Navbar = () => {
   const [menuOpen, setMenuOpen] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [isGuest, setIsGuest] = useState(true);
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      setIsGuest(!user);
+    });
+    return () => unsubscribe();
+  }, [auth]);
 
   const handleLogout = async () => {
     setLoading(true);
@@ -50,22 +58,22 @@ const Navbar = () => {
                 className="absolute left-1/2 transform -translate-x-1/2 mt-2 min-w-[12rem] bg-white shadow-lg rounded-lg overflow-hidden z-50"
               >
                 <button
-                  className="flex items-center gap-2 w-full px-4 py-3 hover:bg-gray-100"
+                  disabled={isGuest}
+                  className={`flex items-center gap-2 w-full px-4 py-3 hover:bg-gray-100 ${
+                    isGuest ? "opacity-50 cursor-not-allowed" : ""
+                  }`}
                   onClick={() => navigate("/profile")}
                 >
                   <User className="w-5 h-5" /> Edit Profile
                 </button>
                 <button
-                  className="flex items-center gap-2 w-full px-4 py-3 text-red-600 hover:bg-gray-100"
+                  disabled={isGuest}
+                  className={`flex items-center gap-2 w-full px-4 py-3 text-red-600 hover:bg-gray-100 ${
+                    isGuest ? "opacity-50 cursor-not-allowed" : ""
+                  }`}
                   onClick={handleLogout}
                 >
-                  {loading ? (
-                    "Logging out..."
-                  ) : (
-                    <>
-                      <LogOut className="w-5 h-5" /> Logout
-                    </>
-                  )}
+                  {loading ? "Logging out..." : (<><LogOut className="w-5 h-5" /> Logout</>)}
                 </button>
               </motion.div>
             )}
@@ -75,16 +83,10 @@ const Navbar = () => {
           <button onClick={() => navigate("/meal")} className="hover:underline">
             Meal
           </button>
-          <button
-            onClick={() => navigate("/workout")}
-            className="hover:underline"
-          >
+          <button onClick={() => navigate("/workout")} className="hover:underline">
             Workout
           </button>
-          <button
-            onClick={() => navigate("/progress")}
-            className="hover:underline"
-          >
+          <button onClick={() => navigate("/progress")} className="hover:underline">
             Progress
           </button>
         </div>
@@ -110,22 +112,13 @@ const Navbar = () => {
               </button>
             </div>
             <div className="flex flex-col items-center space-y-6 text-gray-800 text-lg font-medium">
-              <button
-                onClick={() => navigate("/meal")}
-                className="hover:text-blue-600"
-              >
+              <button onClick={() => navigate("/meal")} className="hover:text-blue-600">
                 Meal
               </button>
-              <button
-                onClick={() => navigate("/workout")}
-                className="hover:text-blue-600"
-              >
+              <button onClick={() => navigate("/workout")} className="hover:text-blue-600">
                 Workout
               </button>
-              <button
-                onClick={() => navigate("/progress")}
-                className="hover:text-blue-600"
-              >
+              <button onClick={() => navigate("/progress")} className="hover:text-blue-600">
                 Progress
               </button>
             </div>
