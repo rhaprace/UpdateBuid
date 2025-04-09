@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { auth, db } from "../db/firebaseapp";
+import { auth, db } from "../../db/firebaseapp";
 import { doc, getDoc, updateDoc } from "firebase/firestore";
 import {
   PencilSquareIcon,
@@ -54,15 +54,32 @@ const EditProfile = () => {
     const user = auth.currentUser;
     if (!user) return;
 
+    const updatedValue = fieldIsNumber(editField!)
+      ? parseFloat(tempValue)
+      : tempValue;
+
     const updatedData = {
       ...userData,
-      [editField as string]: fieldIsNumber(editField!)
-        ? parseFloat(tempValue)
-        : tempValue,
+      [editField!]: updatedValue,
     };
 
     try {
-      await updateDoc(doc(db, "users", user.uid), updatedData);
+      const userDocRef = doc(db, "users", user.uid);
+      if (editField === "weight") {
+        const currentDoc = await getDoc(userDocRef);
+        const currentData = currentDoc.data();
+        const currentHistory = Array.isArray(currentData?.weightHistory)
+          ? currentData.weightHistory
+          : [];
+
+        await updateDoc(userDocRef, {
+          ...updatedData,
+          weightHistory: [...currentHistory, updatedValue],
+        });
+      } else {
+        await updateDoc(userDocRef, updatedData);
+      }
+
       setUserData(updatedData);
       setEditField(null);
     } catch (error) {
@@ -88,8 +105,8 @@ const EditProfile = () => {
         className="h-8 w-8 text-gray-50 hover:text-gray-300 transition duration-200 fixed left-0 ml-5 mt-5"
       />
       <section className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-[#000059] to-[#D9D9D9] p-6">
-        <div className="w-full max-w-lg p-6 bg-white/10 backdrop-blur-lg rounded-xl shadow-lg border border-white/20">
-          <h2 className="text-2xl font-bold text-white text-center mb-6">
+        <div className="w-full max-w-lg p-6 bg-white/20 backdrop-blur-lg rounded-xl shadow-lg border border-white/30">
+          <h2 className="text-3xl font-bold text-white text-center mb-6">
             Edit Profile
           </h2>
           <div className="flex flex-col items-center mb-6">
@@ -107,7 +124,7 @@ const EditProfile = () => {
               )}
               <CameraIcon
                 onClick={handleProfilePicUpload}
-                className="absolute bottom-0 right-0 h-8 w-8 bg-blue-500 text-white p-1 rounded-full cursor-pointer"
+                className="absolute bottom-0 right-0 h-8 w-8 bg-blue-500 text-white p-1 rounded-full cursor-pointer hover:bg-blue-600 transition-all"
               />
             </div>
             <button
@@ -124,7 +141,6 @@ const EditProfile = () => {
                 className="flex justify-between items-center text-white mb-4"
               >
                 <span className="capitalize">{field}:</span>
-
                 {editField === field ? (
                   <div className="flex gap-2">
                     {field === "gender" ? (
@@ -157,11 +173,11 @@ const EditProfile = () => {
                     )}
                     <CheckIcon
                       onClick={handleSave}
-                      className="h-6 w-6 text-green-500 cursor-pointer"
+                      className="h-6 w-6 text-green-500 cursor-pointer hover:text-green-600 transition-all"
                     />
                     <XMarkIcon
                       onClick={() => setEditField(null)}
-                      className="h-6 w-6 text-red-500 cursor-pointer"
+                      className="h-6 w-6 text-red-500 cursor-pointer hover:text-red-600 transition-all"
                     />
                   </div>
                 ) : (
@@ -176,7 +192,7 @@ const EditProfile = () => {
                           ]?.toString() || ""
                         )
                       }
-                      className="h-6 w-6 text-blue-400 cursor-pointer"
+                      className="h-6 w-6 text-blue-400 cursor-pointer hover:text-blue-500 transition-all"
                     />
                   </div>
                 )}

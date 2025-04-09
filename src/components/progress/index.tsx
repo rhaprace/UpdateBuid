@@ -1,6 +1,6 @@
 import { motion } from "framer-motion";
 import { useState, useEffect, useCallback } from "react";
-import { auth, db } from "../db/firebaseapp";
+import { auth, db } from "../../db/firebaseapp";
 import { doc, onSnapshot, updateDoc } from "firebase/firestore";
 import { Line } from "react-chartjs-2";
 import "chart.js/auto";
@@ -10,6 +10,7 @@ import { useNavigate } from "react-router-dom";
 interface Exercise {
   id: string;
   name: string;
+  date: string;
 }
 
 interface Meal {
@@ -18,11 +19,13 @@ interface Meal {
   protein: number;
   carbs: number;
   fats: number;
+  date: string;
 }
 
 const Progress = () => {
   const [exerciseList, setExerciseList] = useState<Exercise[]>([]);
   const [mealList, setMealList] = useState<Meal[]>([]);
+  const [weightHistory, setWeightHistory] = useState<number[]>([]);
   const [loading, setLoading] = useState(true);
   const [weight, setWeight] = useState<number | null>(null);
   const [height, setHeight] = useState<number | null>(null);
@@ -48,18 +51,14 @@ const Progress = () => {
         setExerciseList(
           Array.isArray(data?.exercises)
             ? data.exercises.map((exercise, index) => ({
-                id:
-                  typeof exercise?.id === "string"
-                    ? exercise.id
-                    : `exercise-${index}`,
-                name:
-                  typeof exercise?.name === "string"
-                    ? exercise.name
-                    : "Unknown Exercise",
+                id: exercise.id,
+                name: exercise.name,
+                date: exercise.date,
               }))
             : []
         );
         setMealList(Array.isArray(data?.meals) ? data.meals : []);
+        setWeightHistory(data?.weightHistory || []);
         setWeight(data.weight || null);
         setHeight(data.height || null);
         setAge(data.age || null);
@@ -77,7 +76,7 @@ const Progress = () => {
       calculateCaloriesAndNutrition();
       calculateBMI();
     }
-  }, [weight, height, age, gender, goal]);
+  }, [weight, height, age, gender, goal, totalCalories]);
 
   useEffect(() => {
     if (mealList.length > 0) {
@@ -89,7 +88,7 @@ const Progress = () => {
     }
   }, [mealList]);
 
-  const calculateCaloriesAndNutrition = () => {
+  const calculateCaloriesAndNutrition = useCallback(async () => {
     if (!weight || !height || !age || !gender || !goal) return;
 
     let BMR: number;
@@ -118,9 +117,19 @@ const Progress = () => {
         "A balanced diet with lean protein, complex carbs, and veggies is ideal.";
     }
 
-    setCaloriesNeeded(`${Math.round(adjustedCalories)} kcal/day`);
+    const caloriesRemaining = adjustedCalories - totalCalories;
+
+    setCaloriesNeeded(`${Math.round(caloriesRemaining)} kcal remaining`);
     setNutritionNeeds(nutritionRecommendation);
-  };
+
+    const user = auth.currentUser;
+    if (user) {
+      const userDocRef = doc(db, "users", user.uid);
+      await updateDoc(userDocRef, {
+        caloriesNeeded: Math.round(caloriesRemaining),
+      });
+    }
+  }, [weight, height, age, gender, goal, totalCalories]);
 
   const calculateBMI = () => {
     if (!weight || !height) return;
@@ -170,6 +179,19 @@ const Progress = () => {
     return <div className="text-center text-gray-800">Loading...</div>;
   }
 
+  const weightChartData = {
+    labels: weightHistory.map((_, index) => `Day ${index + 1}`),
+    datasets: [
+      {
+        label: "Weight Over Time",
+        data: weightHistory,
+        borderColor: "#ff5e62",
+        backgroundColor: "rgba(255, 94, 98, 0.5)",
+        fill: true,
+      },
+    ],
+  };
+
   const chartData = {
     labels: exerciseList.map((exercise) => exercise.name),
     datasets: [
@@ -193,63 +215,69 @@ const Progress = () => {
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ duration: 0.5 }}
-        className="min-h-screen flex items-center justify-center p-4 sm:p-6 bg-gradient-to-br from-[#000059] to-[#D9D9D9]"
+        className="min-h-screen flex items-center justify-center bg-gradient-to-b from-[#000059] to-[#D9D9D9] p-4 sm:p-6"
       >
-        <div className="w-full max-w-4xl bg-gradient-to-r from-blue-600/30 to-purple-600/30 text-white shadow-lg rounded-2xl p-6 md:p-8 grid gap-6 sm:gap-8 grid-cols-1 md:grid-cols-2">
-          <h1 className="text-3xl font-bold text-white text-center col-span-2">
-            PROGRESS <span className="text-blue-400">TRACKER</span>
-          </h1>
+        <div className="w-full max-w-screen-xl flex flex-col sm:flex-row gap-6 sm:gap-12 px-4 sm:px-6 py-8">
+          <div className="w-full sm:w-1/3 bg-white rounded-xl shadow-lg p-6 sm:p-8 flex flex-col justify-between">
+            <h1 className="text-3xl font-bold text-center text-[#000059] mb-6">
+              PROGRESS TRACKER
+            </h1>
 
-          <div className="text-center text-lg font-semibold">
-            <div>Weight: {weight ? `${weight} kg` : "Not Available"}</div>
-            <div>Height: {height ? `${height} cm` : "Not Available"}</div>
-            <div>Age: {age || "Not Available"}</div>
-            <div>Goal: {goal || "Not Available"}</div>
-          </div>
-
-          <div className="grid gap-4">
-            <div>
-              <h3 className="text-lg font-semibold text-center">BMI</h3>
-              <p className="text-center">{bmiCategory || "Calculating..."}</p>
+            <div className="text-lg font-semibold space-y-4">
+              <div>Weight: {weight ? `${weight} kg` : "Not Available"}</div>
+              <div>Height: {height ? `${height} cm` : "Not Available"}</div>
+              <div>Age: {age || "Not Available"}</div>
+              <div>Goal: {goal || "Not Available"}</div>
             </div>
 
-            <div>
-              <h3 className="text-lg font-semibold text-center">
-                Calories Needed
-              </h3>
-              <p className="text-center">{caloriesNeeded}</p>
-            </div>
+            <div className="mt-8 space-y-6">
+              <div>
+                <h3 className="text-xl font-semibold">BMI</h3>
+                <p className="text-sm">{bmiCategory || "Calculating..."}</p>
+              </div>
 
-            <div>
-              <h3 className="text-lg font-semibold text-center">
-                Health Advice
-              </h3>
-              <p className="text-center">{healthRecommendation}</p>
+              <div>
+                <h3 className="text-xl font-semibold">Calories Needed</h3>
+                <p className="text-sm">{caloriesNeeded}</p>
+              </div>
+
+              <div>
+                <h3 className="text-xl font-semibold">Health Advice</h3>
+                <p className="text-sm">{healthRecommendation}</p>
+              </div>
             </div>
           </div>
-
-          <div className="col-span-2 bg-white rounded-xl">
-            <Line data={chartData} />
-          </div>
-
-          <div className="col-span-2 bg-gradient-to-r from-blue-600/30 to-purple-600/30 shadow-md rounded-xl p-6">
-            <h3 className="text-lg font-semibold mb-3">Pending Exercises</h3>
-            <ul>
-              {exerciseList.map((exercise) => (
-                <li
-                  key={exercise.id}
-                  className="flex justify-between items-center p-2 sm:p-3 bg-white shadow rounded-lg mb-2 text-sm sm:text-base"
-                >
-                  <span>{exercise.name}</span>
-                  <button
-                    onClick={() => markAsDone(exercise.id)}
-                    className="bg-green-500 text-white py-1 px-3 sm:py-2 sm:px-4 rounded-lg hover:bg-green-600"
+          <div className="w-full sm:w-1/3 bg-white rounded-xl shadow-lg p-6 sm:p-8 flex flex-col">
+            <h3 className="text-xl font-semibold mb-3">Pending Exercises</h3>
+            <div className="max-h-72 overflow-y-auto">
+              <ul>
+                {exerciseList.map((exercise) => (
+                  <li
+                    key={exercise.id}
+                    className="flex justify-between items-center p-4 bg-gray-100 rounded-lg mb-3 hover:bg-gray-200 transition duration-300"
                   >
-                    Done
-                  </button>
-                </li>
-              ))}
-            </ul>
+                    <span className="text-sm">{exercise.name}</span>
+                    <button
+                      onClick={() => markAsDone(exercise.id)}
+                      className="bg-green-500 text-white py-2 px-4 rounded-lg hover:bg-green-600 transition duration-200"
+                    >
+                      Done
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+
+          <div className="w-full sm:w-1/3 flex flex-col gap-6">
+            <div className="bg-white rounded-xl shadow-lg p-6 sm:p-8 flex flex-col justify-between">
+              <h3 className="text-xl font-semibold mb-4">Weight Progress</h3>
+              <Line data={weightChartData} />
+            </div>
+            <div className="bg-white rounded-xl shadow-lg p-6 sm:p-8 flex flex-col justify-between">
+              <h3 className="text-xl font-semibold mb-4">Exercise Progress</h3>
+              <Line data={chartData} />
+            </div>
           </div>
         </div>
       </motion.div>

@@ -56,7 +56,7 @@ const LandingPage: React.FC = () => {
         transition={{ duration: 1.2 }}
       >
         <h1 className="text-4xl sm:text-6xl font-extrabold leading-tight">
-          UNLOCK YOUR <span className="text-blue-400">BODY GOALS</span>
+          UNLOCK YOUR <span className="text-[#000059]">BODY GOALS</span>
         </h1>
         <p className="mt-4 text-lg sm:text-xl font-medium">
           AthleTech is your AI-powered fitness & diet companion. Get customized
@@ -65,7 +65,7 @@ const LandingPage: React.FC = () => {
         </p>
         <div className="mt-8 flex flex-col sm:flex-row justify-center gap-4">
           <motion.button
-            className="bg-blue-400 text-black px-6 py-3 rounded-lg font-semibold shadow-lg hover:bg-blue-500 transition-all"
+            className="bg-[#000059] text-white px-6 py-3 rounded-lg font-semibold shadow-lg hover:bg-white hover:text-black transition-all"
             whileHover={{ scale: 1.1 }}
             whileTap={{ scale: 0.9 }}
             onClick={() => navigate("/login")}
@@ -74,7 +74,7 @@ const LandingPage: React.FC = () => {
           </motion.button>
 
           <motion.button
-            className="bg-transparent border-2 border-white px-6 py-3 rounded-lg font-semibold shadow-lg hover:bg-white hover:text-black transition-all"
+            className="bg-transparent border-2 border-white px-6 py-3 rounded-lg font-semibold shadow-lg hover:bg-[#000059] hover:text-white transition-all"
             whileHover={{ scale: 1.1 }}
             whileTap={{ scale: 0.9 }}
             onClick={() => {

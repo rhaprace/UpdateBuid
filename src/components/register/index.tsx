@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { createUserWithEmailAndPassword } from "firebase/auth";
 import { doc, setDoc } from "firebase/firestore";
-import { auth, db } from "../db/firebaseapp";
+import { auth, db } from "../../db/firebaseapp";
 import { ArrowLongLeftIcon } from "@heroicons/react/24/solid";
 import { motion } from "framer-motion";
 
@@ -165,7 +165,7 @@ const Register = () => {
           <div className="mb-4 text-white">
             <label className="mr-4">Fitness Goal:</label>
             <select
-              className="w-full bg-transparent border border-gray-400 text-black rounded-md px-3 py-2 focus:outline-none focus:border-blue-400 transition-all"
+              className="w-full bg-transparent border border-gray-400 text-black rounded-md px-3 py-2 focus:outline-none focus:border-[#000059] transition-all"
               value={goal}
               onChange={(e) => setGoal(e.target.value)}
             >
@@ -179,7 +179,7 @@ const Register = () => {
           </div>
 
           <motion.button
-            className="w-full bg-blue-400 text-white font-semibold rounded-md p-3 hover:bg-blue-500 transition-all"
+            className="w-full bg-[#000059] text-white font-semibold rounded-md p-3 hover:bg-white hover:text-black transition-all"
             onClick={registerUser}
             disabled={authing}
             whileHover={{ scale: 1.05 }}
@@ -198,7 +198,7 @@ const Register = () => {
             className="text-white text-sm"
           >
             Already Registered?{" "}
-            <span className="text-blue-400">Log in here</span>
+            <span className="text-[#000059] ">Log in here</span>
           </button>
         </div>
       </motion.div>

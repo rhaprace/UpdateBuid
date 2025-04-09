@@ -2,8 +2,10 @@ import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { onAuthStateChanged, User } from "firebase/auth";
-import { auth } from "../db/firebaseapp";
+import { auth } from "../../db/firebaseapp";
 import { ArrowLeft } from "lucide-react";
+import { doc, getDoc } from "firebase/firestore";
+import { db } from "../../db/firebaseapp";
 
 const API_KEY = import.meta.env.VITE_OPENROUTER_API_KEY || "";
 const SITE_URL = "https://localhost:5173";
@@ -14,7 +16,6 @@ interface Message {
   user: string;
   bot: string;
 }
-
 export default function ChatbotPage() {
   const navigate = useNavigate();
   const [user, setUser] = useState<User | null>(null);
@@ -23,18 +24,32 @@ export default function ChatbotPage() {
   const [userMessageCount, setUserMessageCount] = useState<number>(0);
   const [input, setInput] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(false);
+  const [userData, setUserData] = useState<any>(null);
+  const [caloriesNeeded, setCaloriesNeeded] = useState<number | null>(null);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-      const guestStatus = localStorage.getItem("isGuest") === "true";
+    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+      const guestStatus =
+        !currentUser && localStorage.getItem("isGuest") === "true";
+
       if (!currentUser && !guestStatus) {
         navigate("/login", { replace: true });
       } else {
         setUser(currentUser);
         setIsGuest(guestStatus);
+        if (currentUser) {
+          const userDoc = await getDoc(doc(db, "users", currentUser.uid));
+          if (userDoc.exists()) {
+            const data = userDoc.data();
+            setUserData(data);
+            setCaloriesNeeded(data?.caloriesNeeded || null);
+          }
+        }
+        if (currentUser) {
+          localStorage.removeItem("isGuest");
+        }
       }
     });
-
     return () => unsubscribe();
   }, [navigate]);
 
@@ -81,15 +96,40 @@ export default function ChatbotPage() {
   };
 
   const handleSend = async () => {
-    if (!input.trim() || (isGuest && userMessageCount >= GUEST_MESSAGE_LIMIT))
+    if (!input.trim()) return;
+    if (isGuest && !user && userMessageCount >= GUEST_MESSAGE_LIMIT) {
       return;
+    }
 
-    const userMessage = input;
     setInput("");
-    setMessages((prev) => [...prev, { user: userMessage, bot: "..." }]);
-    setUserMessageCount((prevCount) => prevCount + 1);
+    setMessages((prev) => [...prev, { user: input, bot: "..." }]);
+    if (isGuest && !user) {
+      setUserMessageCount((prevCount) => prevCount + 1);
+    }
 
-    const botReply = await fetchBotResponse(userMessage);
+    const userMessage = input.toLowerCase();
+    let botReply = "";
+
+    if (["hi", "hello", "hey", "name"].includes(userMessage)) {
+      botReply = userData?.name
+        ? `Hello ${userData.name}! How can I help you today?`
+        : "Hello! How can I help you today?";
+    } else if (userMessage.includes("my weight")) {
+      botReply = userData?.weight
+        ? `Your weight is ${userData.weight} kg.`
+        : "Sorry, I couldn't find your weight.";
+    } else if (userMessage.includes("my goal")) {
+      botReply = userData?.goal
+        ? `Your fitness goal is ${userData.goal}.`
+        : "Sorry, I couldn't find your fitness goal.";
+    } else if (userMessage.includes("calories")) {
+      botReply =
+        caloriesNeeded !== null
+          ? `You still need around ${caloriesNeeded} kcal today.`
+          : "I couldn't find your calorie data. Please make sure you have entered your details.";
+    } else {
+      botReply = await fetchBotResponse(userMessage);
+    }
 
     setMessages((prev) =>
       prev.map((msg, index) =>
@@ -149,16 +189,17 @@ export default function ChatbotPage() {
         transition={{ duration: 0.5 }}
       >
         <input
-          className="flex-1 bg-gray-700 text-white border border-gray-600 p-2 rounded-lg focus:outline-none"
+          className="flex-1 bg-white text-black border border-gray-600 p-2 rounded-lg focus:outline-none"
           value={input}
           onChange={(e) => setInput(e.target.value)}
           placeholder={
-            isGuest && userMessageCount >= GUEST_MESSAGE_LIMIT
+            isGuest && !user && userMessageCount >= GUEST_MESSAGE_LIMIT
               ? "Guest limit reached!"
               : "Type a message..."
           }
           disabled={
-            loading || (isGuest && userMessageCount >= GUEST_MESSAGE_LIMIT)
+            loading ||
+            (isGuest && !user && userMessageCount >= GUEST_MESSAGE_LIMIT)
           }
         />
         <button
@@ -171,7 +212,7 @@ export default function ChatbotPage() {
           {loading ? "..." : "Send"}
         </button>
       </motion.div>
-      {isGuest && userMessageCount >= GUEST_MESSAGE_LIMIT && (
+      {isGuest && !user && userMessageCount >= GUEST_MESSAGE_LIMIT && (
         <motion.div
           className="text-center text-red-500 mt-4 p-4 bg-gray-900"
           initial={{ opacity: 0 }}

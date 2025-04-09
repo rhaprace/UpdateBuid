@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { signInWithEmailAndPassword, onAuthStateChanged } from "firebase/auth";
-import { auth } from "../db/firebaseapp";
+import { auth } from "../../db/firebaseapp";
 import { ArrowLongLeftIcon } from "@heroicons/react/24/solid";
 import { motion } from "framer-motion";
 
@@ -73,7 +73,7 @@ export default function LogIn() {
             onChange={(e) => setPassword(e.target.value)}
           />
           <motion.button
-            className="w-full bg-blue-400 text-white font-semibold rounded-md p-3 hover:bg-blue-500 transition-all"
+            className="w-full bg-[#000059] text-white font-semibold rounded-md p-3 hover:bg-white hover:text-black transition-all"
             onClick={signInWithEmail}
             disabled={authing}
             whileHover={{ scale: 1.05 }}
@@ -91,7 +91,7 @@ export default function LogIn() {
             className="text-white text-sm"
           >
             Don't have an account?{" "}
-            <span className="text-blue-400">Register now</span>
+            <span className="text-[#000059]">Register now</span>
           </button>
         </div>
       </motion.div>

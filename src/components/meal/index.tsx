@@ -1,6 +1,6 @@
 import { motion } from "framer-motion";
 import { useState, useEffect } from "react";
-import { auth, db } from "../db/firebaseapp";
+import { auth, db } from "../../db/firebaseapp";
 import { doc, getDoc, updateDoc } from "firebase/firestore";
 import { ArrowLongLeftIcon } from "@heroicons/react/24/solid";
 import { useNavigate } from "react-router-dom";
@@ -12,13 +12,16 @@ const Meal = () => {
   const [exerciseInput, setExerciseInput] = useState("");
   const [mealInput, setMealInput] = useState({
     name: "",
-    calories: 0,
+    grams: "",
     protein: 0,
     carbs: 0,
     fats: 0,
+    calories: 0,
   });
+  const [caloriesNeeded, setCaloriesNeeded] = useState<number>(0);
   const [userData, setUserData] = useState<any>(null);
   const [totalCaloriesConsumed, setTotalCaloriesConsumed] = useState<number>(0);
+  const [showMacros, setShowMacros] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -29,6 +32,7 @@ const Meal = () => {
         if (userDoc.exists()) {
           const data = userDoc.data();
           setUserData(data);
+          setCaloriesNeeded(data.requiredCaloriesPerDay || 0);
           setExercises(data.exercises || []);
           setTotalCaloriesConsumed(data.totalCaloriesConsumed || 0);
         }
@@ -62,75 +66,110 @@ const Meal = () => {
     alert("Exercise added!");
   };
 
-  const removeExercise = async (id: number) => {
-    const updatedExercises = exercises.filter((exercise) => exercise.id !== id);
-    setExercises(updatedExercises);
+  const handleMealInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
 
-    await updateExercisesInFirestore(updatedExercises);
+    setMealInput({ ...mealInput, [name]: value });
   };
 
   const addMeal = async () => {
-    const { name, calories } = mealInput;
+    const { name, grams } = mealInput;
 
-    if (!name.trim() || calories <= 0) {
-      alert("Meal name cannot be empty and calories must be greater than 0.");
+    if (
+      !name.trim() ||
+      !grams ||
+      isNaN(parseFloat(grams)) ||
+      parseFloat(grams) <= 0
+    ) {
+      alert(
+        "Meal name cannot be empty, and grams must be a valid number greater than 0."
+      );
       return;
     }
 
-    // Update the total calories consumed in Firestore
+    const numericGrams = parseFloat(grams);
+    const newProtein = numericGrams * 0.2;
+    const newCarbs = numericGrams * 0.3;
+    const newFats = numericGrams * 0.1;
+    const newCalories = newProtein * 4 + newCarbs * 4 + newFats * 9;
+
+    setMealInput({
+      ...mealInput,
+      protein: newProtein,
+      carbs: newCarbs,
+      fats: newFats,
+      calories: newCalories,
+    });
+
+    setShowMacros(true);
+
     const user = auth.currentUser;
     if (user) {
       const userDocRef = doc(db, "users", user.uid);
-
-      // Get the existing user data and update calories
       const userDoc = await getDoc(userDocRef);
+
       if (userDoc.exists()) {
         const userData = userDoc.data();
-        const newTotalCalories =
-          (userData.totalCaloriesConsumed || 0) + calories;
 
-        // Update the total calories consumed in Firestore
+        const newMeal = {
+          name,
+          grams: numericGrams,
+          protein: newProtein,
+          carbs: newCarbs,
+          fats: newFats,
+          calories: newCalories,
+          createdAt: new Date().toISOString(),
+        };
+
+        const updatedMeals = [...(userData.meals || []), newMeal];
+
+        const newTotalCalories =
+          (userData.totalCaloriesConsumed || 0) + newCalories;
+
         await updateDoc(userDocRef, {
+          meals: updatedMeals,
           totalCaloriesConsumed: newTotalCalories,
         });
+
         setTotalCaloriesConsumed(newTotalCalories);
       }
     }
 
-    // Reset meal input fields
-    setMealInput({ name: "", calories: 0, protein: 0, carbs: 0, fats: 0 });
+    setMealInput({
+      name: "",
+      grams: "",
+      protein: 0,
+      carbs: 0,
+      fats: 0,
+      calories: 0,
+    });
+
     alert("Meal added!");
   };
 
-  const generateMealPlan = () => {
-    if (!userData) return "Loading meal plan...";
-
-    const { weight, height, age, goal } = userData;
-    const bmi = weight / ((height / 100) * (height / 100));
-
-    if (goal === "Weight Loss") {
-      return bmi > 25
-        ? "Based on your data, a low-carb diet with high-protein meals is recommended. Suggested meal prep: Grilled chicken with steamed broccoli and quinoa."
-        : "Based on your data, a balanced diet with portion control is recommended. Suggested meal prep: Baked salmon with roasted vegetables and brown rice.";
-    } else if (goal === "Gain Weight") {
-      return "Based on your data, high-calorie meals with protein shakes and healthy fats are recommended. Suggested meal prep: Beef stir-fry with whole grain pasta and avocado.";
-    } else {
-      return "Based on your data, balanced meals with lean proteins, complex carbs, and veggies are recommended. Suggested meal prep: Turkey and quinoa bowl with mixed greens and a yogurt dressing.";
-    }
-  };
-
-  const navigateToWorkout = () => {
-    navigate("/workout");
-  };
-
-  const deleteTotalCalories = async () => {
+  const handleResetCalories = async () => {
     const user = auth.currentUser;
     if (user) {
       const userDocRef = doc(db, "users", user.uid);
-      // Reset total calories consumed in Firestore
-      await updateDoc(userDocRef, { totalCaloriesConsumed: 0 });
+      await updateDoc(userDocRef, {
+        requiredCaloriesPerDay: 0,
+        totalCaloriesConsumed: 0,
+        meals: [],
+      });
+
+      setCaloriesNeeded(0);
       setTotalCaloriesConsumed(0);
-      alert("Total calories consumed has been reset.");
+      setUserData((prev: any) => ({ ...prev, requiredCaloriesPerDay: 0 }));
+      setMealInput({
+        name: "",
+        grams: "",
+        protein: 0,
+        carbs: 0,
+        fats: 0,
+        calories: 0,
+      });
+
+      alert("Required calories per day and meals have been reset!");
     }
   };
 
@@ -140,135 +179,86 @@ const Meal = () => {
         onClick={() => navigate("/")}
         className="h-8 w-8 text-gray-50 hover:text-gray-300 transition duration-200 fixed left-0 ml-5 mt-5"
       />
-      <section className="min-h-screen h-auto flex flex-col items-center justify-center bg-gradient-to-br from-[#000059] to-[#D9D9D9] p-6 md:min-h-screen lg:min-h-screen">
-        <motion.div
-          className="w-full max-w-4xl p-8 bg-white/10 backdrop-blur-2xl rounded-3xl shadow-xl border border-white/20 bg-gradient-to-r from-blue-600/30 to-purple-600/30"
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8 }}
-        >
-          <motion.h2
-            className="text-4xl font-extrabold text-center text-white drop-shadow-xl mb-8 tracking-wider"
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 1 }}
-          >
-            Meal & Exercise Planner
-          </motion.h2>
+      <section className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-[#1a1a4d] to-[#f0f0f0] p-6">
+        <h2 className="text-5xl md:text-6xl font-extrabold text-center text-gray-800 mb-4">
+          Meal & Exercise Planner
+        </h2>
+        <p className="text-center text-lg md:text-xl text-gray-600 mb-8">
+          Effortlessly track your meals and exercises while staying on top of
+          your nutrition goals.
+        </p>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <motion.div className="p-6 bg-white/10 backdrop-blur-lg rounded-2xl shadow-lg border border-white/20">
-              <h3 className="text-xl font-semibold text-white drop-shadow-lg mb-4">
-                Recommended Meal Plan
-              </h3>
-              <p className="text-white/80">{generateMealPlan()}</p>
-            </motion.div>
-
-            <motion.div className="p-6 bg-white/10 backdrop-blur-lg rounded-2xl shadow-lg border border-white/20">
-              <h3 className="text-xl font-semibold text-white drop-shadow-lg mb-4">
-                Add a New Exercise
-              </h3>
-              <input
-                type="text"
-                value={exerciseInput}
-                onChange={(e) => setExerciseInput(e.target.value)}
-                className="w-full p-3 border border-white/30 bg-white/5 rounded-lg text-white placeholder-gray-300 focus:ring-2 focus:ring-blue-500 focus:outline-none transition-all"
-                placeholder="Enter exercise name"
-              />
-              <button
-                onClick={addExercise}
-                className="w-full mt-4 bg-blue-500/80 text-white py-3 rounded-lg font-semibold hover:bg-blue-600 hover:scale-105 transition-all duration-300"
-              >
-                Add Exercise
-              </button>
-            </motion.div>
-          </div>
-
-          <div className="mt-8">
-            <h3 className="text-xl font-semibold text-white drop-shadow-lg mb-4">
-              Add a New Meal
+        <div className="flex flex-col gap-8 md:grid md:grid-cols-2 lg:grid-cols-3 md:gap-10 lg:gap-14 w-full max-w-6xl">
+          <div className="flex flex-col p-6 bg-white/40 backdrop-blur-md rounded-2xl shadow-xl border border-white/50 hover:scale-105 transition-all duration-300">
+            <h3 className="text-3xl md:text-4xl font-semibold text-gray-800 mb-4">
+              Add a New Exercise
             </h3>
             <input
               type="text"
-              value={mealInput.name}
-              onChange={(e) =>
-                setMealInput({ ...mealInput, name: e.target.value })
-              }
-              className="w-full p-3 border border-white/30 bg-white/5 rounded-lg text-white placeholder-gray-300 focus:ring-2 focus:ring-blue-500 focus:outline-none transition-all mb-4"
-              placeholder="Meal name"
-            />
-            <input
-              type="number"
-              value={mealInput.calories}
-              onChange={(e) =>
-                setMealInput({
-                  ...mealInput,
-                  calories: parseFloat(e.target.value),
-                })
-              }
-              className="w-full p-3 border border-white/30 bg-white/5 rounded-lg text-white placeholder-gray-300 focus:ring-2 focus:ring-blue-500 focus:outline-none transition-all mb-4"
-              placeholder="Calories"
-            />
-            <input
-              type="number"
-              value={mealInput.protein}
-              onChange={(e) =>
-                setMealInput({
-                  ...mealInput,
-                  protein: parseFloat(e.target.value),
-                })
-              }
-              className="w-full p-3 border border-white/30 bg-white/5 rounded-lg text-white placeholder-gray-300 focus:ring-2 focus:ring-blue-500 focus:outline-none transition-all mb-4"
-              placeholder="Protein (g)"
-            />
-            <input
-              type="number"
-              value={mealInput.carbs}
-              onChange={(e) =>
-                setMealInput({
-                  ...mealInput,
-                  carbs: parseFloat(e.target.value),
-                })
-              }
-              className="w-full p-3 border border-white/30 bg-white/5 rounded-lg text-white placeholder-gray-300 focus:ring-2 focus:ring-blue-500 focus:outline-none transition-all mb-4"
-              placeholder="Carbs (g)"
-            />
-            <input
-              type="number"
-              value={mealInput.fats}
-              onChange={(e) =>
-                setMealInput({ ...mealInput, fats: parseFloat(e.target.value) })
-              }
-              className="w-full p-3 border border-white/30 bg-white/5 rounded-lg text-white placeholder-gray-300 focus:ring-2 focus:ring-blue-500 focus:outline-none transition-all mb-4"
-              placeholder="Fats (g)"
+              value={exerciseInput}
+              onChange={(e) => setExerciseInput(e.target.value)}
+              className="w-full h-12 p-3 mb-4 border border-gray-300 bg-white rounded-lg text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="Enter exercise name"
             />
             <button
-              onClick={addMeal}
-              className="w-full mt-4 bg-green-500/80 text-white py-3 rounded-lg font-semibold hover:bg-green-600 hover:scale-105 transition-all duration-300"
+              onClick={addExercise}
+              className="w-full bg-[#1a1a4d] text-white px-6 py-3 rounded-lg font-semibold shadow-lg hover:bg-blue-600 transition-all"
             >
-              Add Meal
+              Add Exercise
             </button>
           </div>
-
-          <div className="mt-8 text-white text-center">
-            <h3 className="text-xl font-semibold drop-shadow-lg mb-4">
-              Total Calories Consumed: {totalCaloriesConsumed} kcal
+          <div className="flex flex-col p-6 bg-white/40 backdrop-blur-md rounded-2xl shadow-xl border border-white/50 hover:scale-105 transition-all duration-300">
+            <h3 className="text-3xl md:text-4xl font-semibold text-gray-800 mb-4">
+              Add a New Meal
             </h3>
+            <div className="space-y-4">
+              <input
+                type="text"
+                name="name"
+                value={mealInput.name}
+                onChange={handleMealInputChange}
+                placeholder="Meal name"
+                className="w-full h-12 p-3 mb-4 border border-gray-300 bg-white rounded-lg text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              <input
+                type="text"
+                name="grams"
+                value={mealInput.grams}
+                onChange={handleMealInputChange}
+                placeholder="Grams"
+                className="w-full h-12 p-3 mb-4 border border-gray-300 bg-white rounded-lg text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              <button
+                onClick={addMeal}
+                className="w-full bg-[#D9D9D9] text-black px-6 py-3 rounded-lg font-semibold shadow-lg hover:bg-[#1a1a4d] hover:text-white transition-all"
+              >
+                Add Meal
+              </button>
+              {showMacros && (
+                <div className="mt-4 grid grid-cols-2 gap-2 text-gray-800 text-sm">
+                  <p>Protein: {mealInput.protein.toFixed(1)}g</p>
+                  <p>Carbs: {mealInput.carbs.toFixed(1)}g</p>
+                  <p>Fats: {mealInput.fats.toFixed(1)}g</p>
+                  <p>Calories: {mealInput.calories.toFixed(1)} kcal</p>
+                </div>
+              )}
+            </div>
+          </div>
+          <div className="flex flex-col p-6 bg-white/40 backdrop-blur-md rounded-2xl shadow-xl border border-white/50 hover:scale-105 transition-all duration-300 text-center">
+            <h4 className="text-3xl md:text-4xl font-semibold text-gray-800 mb-4">
+              Total Calories Consumed
+            </h4>
+            <p className="text-5xl font-extrabold text-green-500 mb-4">
+              {totalCaloriesConsumed} kcal
+            </p>
             <button
-              onClick={deleteTotalCalories}
-              className="w-full mt-4 bg-red-500/80 text-white py-3 rounded-lg font-semibold hover:bg-red-600 hover:scale-105 transition-all duration-300"
+              className="bg-[#1a1a4d] text-white px-6 py-3 rounded-lg font-semibold shadow-lg hover:bg-blue-600 transition-all"
+              onClick={handleResetCalories}
             >
-              Reset Total Calories
+              Reset Calories
             </button>
           </div>
-
-          <button
-            onClick={navigateToWorkout}
-            className="mt-6 bg-green-500/80 text-white py-3 px-6 rounded-lg font-semibold hover:bg-green-600 hover:scale-105 transition-all duration-300 shadow-xl"
-          >
-            Recommended Workout
-          </button>
-        </motion.div>
+        </div>
       </section>
     </>
   );

@@ -1,8 +1,8 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Bars3Icon, XMarkIcon, UserIcon } from "@heroicons/react/24/solid";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
-import { getAuth, signOut } from "firebase/auth";
+import { getAuth, signOut, onAuthStateChanged } from "firebase/auth";
 import { LogOut, User } from "lucide-react";
 
 const Navbar = () => {
@@ -11,7 +11,14 @@ const Navbar = () => {
   const [menuOpen, setMenuOpen] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [isGuest, setIsGuest] = useState(true);
 
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      setIsGuest(!user);
+    });
+    return () => unsubscribe();
+  }, [auth]);
   const handleLogout = async () => {
     setLoading(true);
     try {
@@ -50,13 +57,19 @@ const Navbar = () => {
                 className="absolute left-1/2 transform -translate-x-1/2 mt-2 min-w-[12rem] bg-white shadow-lg rounded-lg overflow-hidden z-50"
               >
                 <button
-                  className="flex items-center gap-2 w-full px-4 py-3 hover:bg-gray-100"
+                  disabled={isGuest}
+                  className={`flex items-center gap-2 w-full px-4 py-3 hover:bg-gray-100 ${
+                    isGuest ? "opacity-50 cursor-not-allowed" : ""
+                  }`}
                   onClick={() => navigate("/profile")}
                 >
                   <User className="w-5 h-5" /> Edit Profile
                 </button>
                 <button
-                  className="flex items-center gap-2 w-full px-4 py-3 text-red-600 hover:bg-gray-100"
+                  disabled={isGuest}
+                  className={`flex items-center gap-2 w-full px-4 py-3 text-red-600 hover:bg-gray-100 ${
+                    isGuest ? "opacity-50 cursor-not-allowed" : ""
+                  }`}
                   onClick={handleLogout}
                 >
                   {loading ? (
