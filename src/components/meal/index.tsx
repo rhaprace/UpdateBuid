@@ -177,13 +177,13 @@ const Meal = () => {
     <>
       <ArrowLongLeftIcon
         onClick={() => navigate("/")}
-        className="h-8 w-8 text-gray-50 hover:text-gray-300 transition duration-200 fixed left-0 ml-5 mt-5"
+        className="h-8 w-8 text-gray-50 hover:text-gray-300 transition duration-200 fixed left-0 ml-5 mt-5 block md:hidden z-50"
       />
       <section className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-[#1a1a4d] to-[#f0f0f0] p-6">
         <h2 className="text-5xl md:text-6xl font-extrabold text-center text-gray-800 mb-4">
           Meal & Exercise Planner
         </h2>
-        <p className="text-center text-lg md:text-xl text-gray-600 mb-8">
+        <p className="text-center text-lg md:text-xl text-gray-800 mb-8">
           Effortlessly track your meals and exercises while staying on top of
           your nutrition goals.
         </p>

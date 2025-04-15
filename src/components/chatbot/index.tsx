@@ -97,19 +97,20 @@ export default function ChatbotPage() {
 
   const handleSend = async () => {
     if (!input.trim()) return;
+
     if (isGuest && !user && userMessageCount >= GUEST_MESSAGE_LIMIT) {
       return;
     }
 
     setInput("");
     setMessages((prev) => [...prev, { user: input, bot: "..." }]);
+
     if (isGuest && !user) {
       setUserMessageCount((prevCount) => prevCount + 1);
     }
 
     const userMessage = input.toLowerCase();
     let botReply = "";
-
     if (["hi", "hello", "hey", "name"].includes(userMessage)) {
       botReply = userData?.name
         ? `Hello ${userData.name}! How can I help you today?`
@@ -127,6 +128,47 @@ export default function ChatbotPage() {
         caloriesNeeded !== null
           ? `You still need around ${caloriesNeeded} kcal today.`
           : "I couldn't find your calorie data. Please make sure you have entered your details.";
+    } else if (
+      userMessage.includes("recommendation") ||
+      userMessage.includes("advice") ||
+      userMessage.includes("suggest")
+    ) {
+      if (userData?.goal === "Weight Loss") {
+        botReply = `Since your goal is weight loss, try incorporating lean protein sources, veggies, and healthy fats while keeping carbs low. Here are some food suggestions:
+        - Grilled chicken breast
+        - Leafy greens (spinach, kale)
+        - Avocados
+        - Eggs
+        - Greek yogurt
+        - Berries (blueberries, strawberries)
+        - Salmon
+        - Broccoli
+        These foods will help you stay full while keeping your calories in check.`;
+      } else if (userData?.goal === "Gain Weight") {
+        botReply = `To gain weight, focus on calorie-dense foods with a mix of proteins, carbs, and healthy fats. Here are some food suggestions:
+        - Whole grain pasta
+        - Nut butters (peanut butter, almond butter)
+        - Full-fat dairy products (cheese, milk, yogurt)
+        - Quinoa
+        - Lean meats (chicken, turkey, beef)
+        - Healthy oils (olive oil, coconut oil)
+        - Sweet potatoes
+        - Bananas
+        These foods will help you increase your calorie intake while providing essential nutrients.`;
+      } else if (userData?.goal === "Maintain Weight") {
+        botReply = `To maintain your current weight, focus on a balanced diet that includes proteins, carbs, and fats. Here are some food suggestions:
+        - Chicken breast or turkey
+        - Brown rice or quinoa
+        - Leafy greens (spinach, arugula)
+        - Whole grain bread
+        - Eggs
+        - Fresh fruits (apples, oranges)
+        - Almonds, walnuts, or other nuts
+        - Olive oil
+        This will help you keep your calorie intake at maintenance levels while ensuring your body gets a variety of nutrients.`;
+      } else {
+        botReply = `I recommend focusing on a balanced diet with a variety of foods. Include lean protein, healthy fats, and complex carbs. For specific recommendations, let me know your fitness goals!`;
+      }
     } else {
       botReply = await fetchBotResponse(userMessage);
     }
@@ -137,7 +179,6 @@ export default function ChatbotPage() {
       )
     );
   };
-
   return (
     <div className="flex flex-col h-screen bg-gradient-to-br from-[#000059] to-[#D9D9D9] text-white">
       <motion.header
@@ -201,6 +242,12 @@ export default function ChatbotPage() {
             loading ||
             (isGuest && !user && userMessageCount >= GUEST_MESSAGE_LIMIT)
           }
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && !e.shiftKey) {
+              e.preventDefault();
+              handleSend();
+            }
+          }}
         />
         <button
           className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg ml-2 transition duration-300"

@@ -50,7 +50,7 @@ const Progress = () => {
         const data = userDoc.data();
         setExerciseList(
           Array.isArray(data?.exercises)
-            ? data.exercises.map((exercise, index) => ({
+            ? data.exercises.map((exercise) => ({
                 id: exercise.id,
                 name: exercise.name,
                 date: exercise.date,
@@ -208,8 +208,8 @@ const Progress = () => {
   return (
     <>
       <ArrowLongLeftIcon
-        onClick={() => navigate("/meal")}
-        className="h-8 w-8 text-gray-50 hover:text-gray-300 transition duration-200 fixed left-0 ml-5 mt-5"
+        onClick={() => navigate("/")}
+        className="h-8 w-8 text-gray-50 hover:text-gray-300 transition duration-200 fixed left-0 ml-5 mt-5 block md:hidden z-50"
       />
       <motion.div
         initial={{ opacity: 0, scale: 0.95 }}
@@ -229,7 +229,10 @@ const Progress = () => {
               <div>Age: {age || "Not Available"}</div>
               <div>Goal: {goal || "Not Available"}</div>
             </div>
-
+            <div>
+              <h3 className="text-xl font-semibold">Nutrition Needs</h3>
+              <p className="text-sm">{nutritionNeeds}</p>
+            </div>
             <div className="mt-8 space-y-6">
               <div>
                 <h3 className="text-xl font-semibold">BMI</h3>

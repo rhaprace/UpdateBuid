@@ -102,7 +102,7 @@ const EditProfile = () => {
     <>
       <ArrowLongLeftIcon
         onClick={() => navigate("/")}
-        className="h-8 w-8 text-gray-50 hover:text-gray-300 transition duration-200 fixed left-0 ml-5 mt-5"
+        className="h-8 w-8  text-white transition duration-200 fixed left-0 ml-5 mt-5 block md:hidden z-50"
       />
       <section className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-[#000059] to-[#D9D9D9] p-6">
         <div className="w-full max-w-lg p-6 bg-white/20 backdrop-blur-lg rounded-xl shadow-lg border border-white/30">

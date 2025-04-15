@@ -111,8 +111,8 @@ const Workout = () => {
       transition={{ duration: 1.2 }}
     >
       <ArrowLongLeftIcon
-        onClick={() => navigate("/meal")}
-        className="h-8 w-8 text-gray-50 hover:text-gray-300 transition duration-200 fixed left-0 ml-5 mt-5"
+        onClick={() => navigate("/")}
+        className="h-8 w-8 text-gray-50 hover:text-gray-300 transition duration-200 fixed left-0 ml-5 mt-5 block md:hidden z-50"
       />
       <h1 className="text-3xl md:text-5xl font-bold text-center mb-10 pt-8 text-gray-800">
         Workout Recommendations

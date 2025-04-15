@@ -53,8 +53,10 @@ const Register = () => {
       );
       const user = userCredential.user;
 
+      // Generate exercises based on the user's fitness goal
       const exercises = generateExercises(goal);
 
+      // Save the user's data to Firestore, including the exercises
       await setDoc(doc(db, "users", user.uid), {
         name,
         weight: Number(weight),
@@ -63,7 +65,7 @@ const Register = () => {
         gender,
         goal,
         email,
-        exercises,
+        exercises, // Store generated exercises here
       });
 
       console.log("User registered:", user.uid);
@@ -96,6 +98,7 @@ const Register = () => {
         <p className="text-lg mb-6 text-gray-200 text-center">
           Start Your Fitness Journey!
         </p>
+
         <div className="mb-6">
           <input
             type="text"

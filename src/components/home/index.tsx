@@ -5,7 +5,6 @@ import { onAuthStateChanged } from "firebase/auth";
 import { auth, db } from "../../db/firebaseapp";
 import { doc, getDoc } from "firebase/firestore";
 import Vid from "@/assets/vid.mp4";
-
 const Home: React.FC = () => {
   const navigate = useNavigate();
   const [userName, setUserName] = useState("Guest");
@@ -69,7 +68,6 @@ const Home: React.FC = () => {
           <p className="text-sm text-white uppercase tracking-widest">
             Let’s get moving.
           </p>
-
           <div className="mt-6 flex justify-center md:justify-start space-x-4">
             <motion.button
               className="w-48 bg-[#000059] text-white font-semibold rounded-md p-3 hover:bg-white hover:text-black transition-all"
@@ -105,33 +103,35 @@ const Home: React.FC = () => {
           />
         </motion.div>
       </motion.div>
-
-      <motion.div
-        className="absolute bottom-16 w-full text-center text-lg text-gray-200 font-semibold"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 1 }}
-      >
-        <p className="italic">"{quote}"</p>
-      </motion.div>
-
-      <div className="absolute bottom-0 w-full py-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white text-center">
+      <div className="fixed bottom-0 w-full z-50">
         <motion.div
-          className="flex justify-center items-center"
+          className="w-full text-center text-base sm:text-lg text-gray-200 font-semibold py-2 bg-black bg-opacity-50"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 1 }}
         >
-          <div className="w-1/3 h-2 bg-gray-400 rounded-full mr-2">
-            <motion.div
-              className="h-2 bg-blue-500 rounded-full"
-              initial={{ width: "0%" }}
-              animate={{ width: "80%" }}
-              transition={{ duration: 2 }}
-            />
-          </div>
-          <span className="ml-2">80% of your daily goal achieved!</span>
+          <p className="italic px-2">"{quote}"</p>
         </motion.div>
+        <div className="w-full py-3 px-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white">
+          <motion.div
+            className="flex flex-col sm:flex-row justify-center items-center gap-2"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 1 }}
+          >
+            <div className="w-full sm:w-1/3 h-2 bg-gray-400 rounded-full overflow-hidden">
+              <motion.div
+                className="h-2 bg-blue-500 rounded-full"
+                initial={{ width: "0%" }}
+                animate={{ width: "80%" }}
+                transition={{ duration: 2 }}
+              />
+            </div>
+            <span className="text-sm sm:text-base">
+              80% of your daily goal achieved!
+            </span>
+          </motion.div>
+        </div>
       </div>
     </section>
   );
